@@ -66,15 +66,19 @@ namespace Trabalho1 {
 						ContaBancaria conta1 = fh.ReadById(id1);
 						ContaBancaria conta2 = fh.ReadById(id2);
 
-						if (conta1.SaldoConta >= transf) {
-							conta1.SaldoConta -= transf;
-							conta1.TransfRealizadas++;
+						if (conta1 != null && conta2 != null) {
+							if (conta1.SaldoConta >= transf) {
+								conta1.SaldoConta -= transf;
+								conta1.TransfRealizadas++;
+							}
+
+							conta2.SaldoConta += transf;
+
+							fh.UpdateById(conta1, id1);
+							fh.UpdateById(conta2, id2);
+						} else {
+							Console.WriteLine("\nUma ou todas as contas digitadas não existem!\n");
 						}
-
-						conta2.SaldoConta += transf;
-
-						fh.UpdateById(conta1, id1);
-						fh.UpdateById(conta2, id2);
 						break;
 					}
 

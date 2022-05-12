@@ -14,9 +14,14 @@ namespace Trabalho1 {
 		// CRUD (Create, Read, Update, Delete) do Banco de Dados de ContaBancaria.
 
 		/// <summary>
-		/// Caminho para o arquivo Conta.db
+		/// Caminho para o arquivo Conta.db.
 		/// </summary>
 		private string pathContaDB = EnvironmentVar.DBPath;
+
+		/// <summary>
+		/// Caminho para o arquivo Index.db.
+		/// </summary>
+		private string pathIndexDB = EnvironmentVar.IndexPath;
 
 		/// <summary>
 		/// Cria um novo registro no Banco de Dados.
@@ -25,11 +30,17 @@ namespace Trabalho1 {
 		/// <returns>Um <see cref="Boolean"/>. Se <see langword="true"/>, então o registro foi atualizado com sucesso. Se <see langword="false"/>, o registro não foi atualizado.</returns>
 		public bool Create(ContaBancaria conta) {
 
+			long pos;
+
+			if (conta == null) {
+				return false;
+			}
+
 			// Lê o ID máximo no início do arquivo.
 			using (FileStream fs = new FileStream(pathContaDB, FileMode.Open, FileAccess.ReadWrite)) {
 				using (BinaryReader br = new BinaryReader(fs)) {
 					br.BaseStream.Seek(0, SeekOrigin.Begin);
-					conta.IdConta = (ushort) (br.ReadUInt16() + 1);
+					conta.IdConta = (ushort)(br.ReadUInt16() + 1);
 				}
 
 				// Faz o update do ID máximo no início do arquivo.
@@ -37,11 +48,13 @@ namespace Trabalho1 {
 
 				using (BinaryWriter bw = new BinaryWriter(fs)) {
 					bw.Seek(0, SeekOrigin.End);
+					pos = bw.BaseStream.Position;
 					bw.Write(false);
 					bw.Write(conta.Serialize().Length);
 					bw.Write(conta.Serialize());
 				}
 			}
+			CreateIndex(conta.IdConta, pos);
 			return true;
 		}
 
@@ -169,25 +182,58 @@ namespace Trabalho1 {
 		/// </summary>
 		public void BuildFile() {
 
+			// Cria o arquivo de indíces
+			BuildIndexFile();
+
 			// Verifica se o arquivo existe ou não. Caso não exista, cria o arquivo e coloca o maxId como 0.
 			// Caso o arquivo já exista, verifica se o arquivo só contém o maxId escrito nele e se ele é igual a zero e reescreve
 			if (!File.Exists(pathContaDB)) {
 				using (FileStream fs = new FileStream(pathContaDB, FileMode.Create)) {
 					using (BinaryWriter bw = new BinaryWriter(fs)) {
 						bw.Seek(0, SeekOrigin.Begin);
-						bw.Write((ushort) 0);
+						bw.Write((ushort)0);
 					}
 				}
 			} else {
 				using (FileStream fs = new FileStream(pathContaDB, FileMode.Open, FileAccess.ReadWrite)) {
 					using (BinaryReader br = new BinaryReader(fs)) {
 						br.BaseStream.Seek(0, SeekOrigin.Begin);
-						int maxId = (int) fs.Length;
-						if (maxId == 0) {
+						long length = fs.Length;
+						if (length == 0) {
 							using (BinaryWriter bw = new BinaryWriter(fs)) {
-								bw.Write((ushort) 0);
+								bw.Write((ushort)0);
 							}
 						}
+					}
+				}
+			}
+		}
+
+		public void BuildIndexFile() {
+			if (!File.Exists(pathIndexDB)) {
+				File.Create(pathIndexDB);
+			}
+		}
+
+		public void CreateIndex(ushort id, long pos) {
+			using (FileStream fs = new FileStream(pathIndexDB, FileMode.Open, FileAccess.Write)) {
+				using (BinaryWriter bw = new BinaryWriter(fs)) {
+					bw.Seek(0, SeekOrigin.End);
+					bw.Write(id);
+					bw.Write(pos);
+				}
+			}
+		}
+
+		public long FindPosByIndex(ushort index) {
+			using (FileStream fs = new FileStream(pathIndexDB, FileMode.Open, FileAccess.Read)) {
+				using (BinaryReader br = new BinaryReader(fs)) {
+					ushort id = br.ReadUInt16();
+					
+					if (id == index) {
+						return br.ReadInt64();
+					} else {
+						br.BaseStream.Position += 8;
 					}
 				}
 			}

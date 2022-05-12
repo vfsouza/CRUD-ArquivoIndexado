@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using Trabalho1.Environment;
 
 namespace Trabalho1.Models {
-	[Serializable]
 	public class ContaBancaria {
 		public ushort IdConta { get; set; }
 		public string NomePessoa { get; set; }
@@ -42,7 +41,7 @@ namespace Trabalho1.Models {
 		/// <summary>
 		/// Marca o atributo Lápide de conta como <see langword="true"/>.
 		/// </summary>
-		public void DeleteConta() {
+		public void Delete() {
 			Lapide = true;
 		}
 
