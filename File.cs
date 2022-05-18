@@ -37,7 +37,7 @@ namespace Trabalho1 {
 			}
 
 			// Lê o ID máximo no início do arquivo.
-			using (FileStream fs = new FileStream(pathContaDB, FileMode.Open, FileAccess.ReadWrite)) {
+			using (FileStream fs = new FileStream(pathContaDB, FileMode.Open, FileAccess.Read)) {
 				using (BinaryReader br = new BinaryReader(fs)) {
 					br.BaseStream.Seek(0, SeekOrigin.Begin);
 					conta.IdConta = (ushort)(br.ReadUInt16() + 1);
@@ -45,7 +45,9 @@ namespace Trabalho1 {
 
 				// Faz o update do ID máximo no início do arquivo.
 				UpdateMaxId(conta.IdConta);
+			}
 
+			using (FileStream fs = new FileStream(pathContaDB, FileMode.Open, FileAccess.Write)) {
 				using (BinaryWriter bw = new BinaryWriter(fs)) {
 					bw.Seek(0, SeekOrigin.End);
 					pos = bw.BaseStream.Position;
@@ -121,6 +123,19 @@ namespace Trabalho1 {
 				}
 			}
 			return null;
+		}
+
+		public ContaBancaria? ReadByPos(long pos) {
+			ContaBancaria conta = new ContaBancaria();
+			using (FileStream fs = new FileStream(pathContaDB, FileMode.Open, FileAccess.Read)) {
+				using (BinaryReader br = new BinaryReader(fs)) {
+					br.BaseStream.Position = pos;
+					conta.Lapide = br.ReadBoolean();
+					br.ReadInt32();
+					conta.Deserialize(br);
+					return conta;
+				}
+			}
 		}
 
 		/// <summary>
@@ -225,18 +240,38 @@ namespace Trabalho1 {
 			}
 		}
 
-		public long FindPosByIndex(ushort index) {
-			using (FileStream fs = new FileStream(pathIndexDB, FileMode.Open, FileAccess.Read)) {
-				using (BinaryReader br = new BinaryReader(fs)) {
-					ushort id = br.ReadUInt16();
-					
-					if (id == index) {
-						return br.ReadInt64();
-					} else {
-						br.BaseStream.Position += 8;
-					}
+public long FindPosByIndex(ushort index) {
+	using (FileStream fs = new FileStream(pathIndexDB, FileMode.Open, FileAccess.Read)) {
+		using (BinaryReader br = new BinaryReader(fs)) {
+			long len = br.BaseStream.Length, inf = 0, sup = len, meio;
+			br.BaseStream.Seek(0, SeekOrigin.Begin);
+			while (br.PeekChar() != -1 && inf <= sup) {
+				meio = (inf + sup) / 2;
+
+				if (meio % 10 <= 5) {
+					meio -= meio % 10;
+				} else {
+					meio += meio % 10;
 				}
+
+				br.BaseStream.Position = meio;
+				Console.WriteLine("Meio: " + meio);
+
+				ushort id = br.ReadUInt16();
+				Console.WriteLine("ID: " + id);
+				if (id == index) {
+					return br.ReadInt64();
+				} else if (id > index) {
+					sup = meio;
+				} else {
+					inf = meio;
+				}
+				Console.WriteLine("Sup: " + sup);
+				Console.WriteLine("Inf: " + inf);
 			}
 		}
+	}
+	return -1;
+}
 	}
 }

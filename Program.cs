@@ -88,7 +88,8 @@ namespace Trabalho1 {
 						Console.Write("Qual ID da conta você deseja ver?> ");
 						ushort id = ushort.Parse(Console.ReadLine());
 
-						ContaBancaria conta = fh.ReadById(id);
+						long pos = fh.FindPosByIndex(id);
+						ContaBancaria? conta = fh.ReadByPos(pos);
 
 						if (conta != null) {
 							if (!conta.Lapide && conta.NomePessoa != "") {
