@@ -1,10 +1,11 @@
 ﻿using System;
-using Trabalho1.Models;
+using Trabalho2.Models;
 
-namespace Trabalho1 {
+namespace Trabalho2 {
 	class Program {
 		static void Main(string[] args) {
 			FileHandler fh = new FileHandler();
+			List<ContaBancaria> list = new List<ContaBancaria>();
 			fh.BuildFile();
 
 			// Loop para escolher as opções.
@@ -85,22 +86,41 @@ namespace Trabalho1 {
 					// Ver registro
 					case 4: {
 						LineWrap();
-						Console.Write("Qual ID da conta você deseja ver?> ");
-						ushort id = ushort.Parse(Console.ReadLine());
+						Console.Write("Deseja fazer a busca por Cidade(0), Nome(1) ou ID(2)?> ");
+						ushort op = ushort.Parse(Console.ReadLine());
 
-						long pos = fh.FindPosByIndex(id);
-						ContaBancaria? conta = fh.ReadByPos(pos);
+						switch (op) {
+							case 0:
+								Console.Write("Digite o nome da cidade> ");
+								string cidade = Console.ReadLine();
+								list = fh.ReadByCity(cidade);
+								for (int i = 0; i < list.Count; i++) {
+									Console.WriteLine(list.ElementAt(i));
+								}
+								break;
 
-						if (conta != null) {
-							if (!conta.Lapide && conta.NomePessoa != "") {
-								Console.WriteLine("\nConta encontrada com sucesso!\n");
+							case 1:
+								Console.Write("Digite o nome da conta> ");
+								string nome = Console.ReadLine();
+								list = fh.ReadByName(nome);
+								for (int i = 0; i < list.Count; i++) {
+									Console.WriteLine(list.ElementAt(i));
+								}
+								break;
 
-								Console.WriteLine(conta.ToString());
-							} else if (conta.Lapide) {
-								Console.WriteLine("\nConta foi excluída\n");
-							}
-						} else {
-							Console.WriteLine("\nEssa conta não existe\n");
+							case 2:
+								Console.Write("Digite o ID da conta> ");
+								ushort id = ushort.Parse(Console.ReadLine());
+								long pos = fh.FindPosByIndex(id);
+
+								ContaBancaria? conta = fh.ReadByPos(pos);
+
+								Console.WriteLine(conta);
+								break;
+
+							default:
+								Console.WriteLine("Opção inválida!");
+								break;
 						}
 						Thread.Sleep(5000);
 						break;

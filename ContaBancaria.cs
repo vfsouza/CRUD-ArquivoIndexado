@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Trabalho1.Environment;
+using Trabalho2.Environment;
 
-namespace Trabalho1.Models {
+namespace Trabalho2.Models {
 	public class ContaBancaria {
 		public ushort IdConta { get; set; }
 		public string NomePessoa { get; set; }
