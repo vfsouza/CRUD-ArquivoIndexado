@@ -75,36 +75,34 @@ namespace Trabalho2 {
 		/// Marca a <see cref="ContaBancaria.Lapide"/> como <see langword="true"/>. Ou seja, a conta vai ser indicada como: excluída.
 		/// </summary>
 		/// <param name="contaId">O ID da conta a ser excluída</param>
+		/// <param name="fs">A <see cref="FileStream"/> usada no momento.</param>
+		/// <returns><see cref="ContaBancaria"/> que foi deletada.</returns>
+		public bool DeleteById(ushort contaId, FileStream fs) {
+			long pos = FindPosByIndex(contaId);
+			using (BinaryWriter bw = new BinaryWriter(fs)) {					
+				bw.BaseStream.Position = pos;
+				bw.Write(true);
+				return true;
+			}
+			CreateInvertedFiles();
+			return false;
+		}
+
+		/// <summary>
+		/// Marca a <see cref="ContaBancaria.Lapide"/> como <see langword="true"/>. Ou seja, a conta vai ser indicada como: excluída.
+		/// </summary>
+		/// <param name="contaId">O ID da conta a ser excluída</param>
 		/// <returns><see cref="ContaBancaria"/> que foi deletada.</returns>
 		public bool DeleteById(ushort contaId) {
-			long pos = 0;
-			using (FileStream fs = new FileStream(pathContaDB, FileMode.Open, FileAccess.ReadWrite)) {
-				using (BinaryReader br = new BinaryReader(fs)) {
-					br.BaseStream.Seek(2, SeekOrigin.Begin);
-
-					// Roda um loop até encontrar o ID da conta procurada
-					while (br.PeekChar() != -1) {
-						pos = br.BaseStream.Position;
-						bool lapide = br.ReadBoolean();
-						int tam = br.ReadInt32();
-
-						if (!lapide) {
-							ushort id = br.ReadUInt16();
-							if (id == contaId) {
-								using (BinaryWriter bw = new BinaryWriter(fs)) {
-									bw.BaseStream.Position = pos;
-									bw.Write(true);
-									return true;
-								}
-							} else {
-								br.BaseStream.Position += tam - 2;
-							}
-						} else {
-							br.BaseStream.Position += tam;
-						}
-					}
+			long pos = FindPosByIndex(contaId);
+			using (FileStream fs = new FileStream(pathContaDB, FileMode.Open, FileAccess.Write)) {
+				using (BinaryWriter bw = new BinaryWriter(fs)) {
+					bw.BaseStream.Position = pos;
+					bw.Write(true);
+					return true;
 				}
 			}
+			CreateInvertedFiles();
 			return false;
 		}
 
@@ -115,27 +113,27 @@ namespace Trabalho2 {
 		/// <returns>Uma <see cref="ContaBancaria"/> com os dados encontrados no Banco de Dados</returns>
 		public ContaBancaria? ReadById(ushort contaId) {
 			ContaBancaria conta = new ContaBancaria();
+			long pos = FindPosByIndex(contaId);
 			using (FileStream fs = new FileStream(pathContaDB, FileMode.Open, FileAccess.Read)) {
-				long length = fs.Length;
 				using (BinaryReader br = new BinaryReader(fs)) {
-					br.BaseStream.Seek(2, SeekOrigin.Begin);
-					while (br.PeekChar() != -1) {
-						conta.Lapide = br.ReadBoolean();
-						int tam = br.ReadInt32();
-
-						conta.Deserialize(br);
-
-						if (conta.IdConta == contaId) {
-							return conta;
-						} else {
-							br.BaseStream.Position += tam;
-						}
+					br.BaseStream.Position = pos;
+					conta.Lapide = br.ReadBoolean();
+					br.ReadInt32();
+					conta.Deserialize(br);
+					
+					if (conta.IdConta == contaId) {
+						return conta;
+					} else {
+						return null;
 					}
 				}
 			}
-			return null;
 		}
 
+		/// <summary>
+		/// Lê todos os registros
+		/// </summary>
+		/// <returns><see cref="List"/> com todos os registros de <see cref="ContaBancaria"/>.</returns>
 		public List<ContaBancaria> ReadAll() {
 			List<ContaBancaria> list = new List<ContaBancaria>();
 
@@ -156,6 +154,11 @@ namespace Trabalho2 {
 			return list;
 		}
 
+		/// <summary>
+		/// Lê todos os registros com base em um atríbuto específico (<paramref name="str"/>).
+		/// </summary>
+		/// <param name="str">Atríbuto específico da conta.</param>
+		/// <returns><see cref="List"/> de IDs que tenham esse atríbuto.</returns>
 		public List<ushort> ReadAll(string str) {
 			List<ushort> list = new List<ushort>();
 
@@ -198,6 +201,11 @@ namespace Trabalho2 {
 			}
 		}
 
+		/// <summary>
+		/// Lê os registros com base no nome da cidade.
+		/// </summary>
+		/// <param name="city">Cidade da conta</param>
+		/// <returns>Uma <see cref="List"/> contendo todos os registros que contenham a mesma cidade da conta.</returns>
 		public List<ContaBancaria> ReadByCity(string city) {
 			List<ushort> ids = new List<ushort>();
 			List<ContaBancaria> contas = new List<ContaBancaria>();
@@ -227,6 +235,11 @@ namespace Trabalho2 {
 			return contas;
 		}
 
+		/// <summary>
+		/// Lê os registros com base no nome da conta.
+		/// </summary>
+		/// <param name="name">Nome da conta</param>
+		/// <returns>Uma <see cref="List"/> contendo todos os registros que contenham o mesmo nome da conta.</returns>
 		public List<ContaBancaria> ReadByName(string name) {
 			List<ushort> ids = new List<ushort>();
 			List<ContaBancaria> contas = new List<ContaBancaria>();
@@ -255,43 +268,37 @@ namespace Trabalho2 {
 		}
 
 		/// <summary>
-		/// Faz o update de uma ContaBancaria no Banco de Dados.
+		/// Faz o update de uma ContaBancaria no Conta.db com base no indíce do arquivo Index.db.
 		/// </summary>
-		/// <param name="contaNova">Nova conta a ser substituída pela existente no Banco de Dados.</param>
+		/// <param name="contaNova">Conta nova a ser atualizada</param>
+		/// <param name="contaId">ID da conta antiga</param>
 		public void UpdateById(ContaBancaria contaNova, ushort contaId) {
 
 			contaNova.IdConta = contaId;
 			byte[] buffer = contaNova.Serialize();
-			long pos;
+			long pos = FindPosByIndex(contaId);
 
 			using (FileStream fs = new FileStream(pathContaDB, FileMode.Open, FileAccess.ReadWrite)) {
 				using (BinaryReader br = new BinaryReader(fs)) {
-					br.BaseStream.Seek(2, SeekOrigin.Begin);
-					while (br.PeekChar() != -1) {
-						bool lapide = br.ReadBoolean();
-						int tam = br.ReadInt32();
+					br.BaseStream.Position = pos;
+					bool lapide = br.ReadBoolean();
+					int tam = br.ReadInt32();
 
-						pos = br.BaseStream.Position;
-						ushort id = br.ReadUInt16();
-
-						if (id == contaId) {
-							if (tam < buffer.Length) {
-								DeleteById(contaId);
-								Create(contaNova);
-								break;
-							} else {
-								using (BinaryWriter bw = new BinaryWriter(fs)) {
-									bw.BaseStream.Position = pos;
-									bw.Write(buffer);
-								}
-								break;
-							}
+					if (lapide) {
+						Create(contaNova);
+					} else {
+						if (tam < buffer.Length) {
+							DeleteById(contaId, fs);
+							Create(contaNova);
 						} else {
-							br.BaseStream.Position += tam - 2;
+							using (BinaryWriter bw = new BinaryWriter(fs)) {
+								bw.Write(buffer);
+							}
 						}
 					}
 				}
 			}
+			CreateInvertedFiles();
 		}
 
 		/// <summary>
@@ -414,12 +421,16 @@ namespace Trabalho2 {
 			return -1;
 		}
 
+		/// <summary>
+		/// Cria as listas invertidas.
+		/// </summary>
 		public void CreateInvertedFiles() {
 			List<ContaBancaria> list = ReadAll();
 			List<string> cities = new List<string>();
 			List<string> names = new List<string>();
 			List<ushort> ids = new List<ushort>();
 
+			// Listas de cidades e nomes sem repetição
 			for (int i = 0; i < list.Count; i++) {
 				if (!cities.Contains(list[i].Cidade)) {
 					cities.Add(list[i].Cidade);
@@ -429,9 +440,11 @@ namespace Trabalho2 {
 				}
 			}
 
+			// Ordenação da lista de cidades e nomes
 			cities.Sort();
 			names.Sort();
 
+			// Lista de cidades
 			using (FileStream fs = new FileStream(pathInvertedCityDB, FileMode.Open, FileAccess.Write)) {
 				using (BinaryWriter bw = new BinaryWriter(fs)) {
 					for (int i = 0; i < cities.Count; i++) {
@@ -445,6 +458,7 @@ namespace Trabalho2 {
 				}
 			}
 
+			// Lista de nomes
 			using (FileStream fs = new FileStream(pathInvertedNameDB, FileMode.Open, FileAccess.Write)) {
 				using (BinaryWriter bw = new BinaryWriter(fs)) {
 					for (int i = 0; i < names.Count; i++) {

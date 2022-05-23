@@ -7,6 +7,7 @@ namespace Trabalho2 {
 			FileHandler fh = new FileHandler();
 			List<ContaBancaria> list = new List<ContaBancaria>();
 			fh.BuildFile();
+			fh.CreateInvertedFiles();
 
 			// Loop para escolher as opções.
 			while (true) {
@@ -16,23 +17,30 @@ namespace Trabalho2 {
 					// Criar conta
 					case 1: {
 						LineWrap();
-						ContaBancaria contaNova = new ContaBancaria();
 						Console.WriteLine("ABERTURA DE CONTA\n");
 
 						Console.Write("Nome da conta..> ");
-						contaNova.NomePessoa = Console.ReadLine();
+						string? nomePessoa = Console.ReadLine();
 
 						Console.Write("CPF da conta...> ");
-						contaNova.CPF = Console.ReadLine();
+						string? cPF = Console.ReadLine();
 
 						Console.Write("Cidada da conta> ");
-						contaNova.Cidade = Console.ReadLine();
+						string? cidade = Console.ReadLine();
+						ContaBancaria contaNova = new ContaBancaria();
 
-						fh.Create(contaNova);
+						if (nomePessoa != null && cPF != null && cidade != null) {
+							fh.Create(contaNova);
 
-						Console.WriteLine("\nConta criada com sucesso!\n");
-						Console.WriteLine(contaNova.ToString());
-						Thread.Sleep(5000);
+							Console.WriteLine("\nConta criada com sucesso!\n");
+							Console.WriteLine(contaNova.ToString());
+							Thread.Sleep(5000);
+						} else {
+							Console.WriteLine("\nFalta de informações para criar conta!\n");
+							Thread.Sleep(2000);
+						}
+
+						
 						break;
 					}
 
@@ -42,13 +50,15 @@ namespace Trabalho2 {
 						Console.Write("ID da sua conta> ");
 						ushort id = ushort.Parse(Console.ReadLine());
 
-						ContaBancaria conta = fh.ReadById(id);
+						ContaBancaria? conta = fh.ReadById(id);
 
-						LineWrap();
-						Console.Write("Quantia a ser depositada> ");
-						conta.SaldoConta += float.Parse(Console.ReadLine());
+						if (conta != null) {
+							LineWrap();
+							Console.Write("Quantia a ser depositada> ");
+							conta.Depositar(float.Parse(Console.ReadLine()));
 
-						fh.UpdateById(conta, id);
+							fh.UpdateById(conta, id);
+						}
 						break;
 					}
 
@@ -64,16 +74,16 @@ namespace Trabalho2 {
 						Console.Write("Quanto você deseja transferir> ");
 						float transf = float.Parse(Console.ReadLine());
 
-						ContaBancaria conta1 = fh.ReadById(id1);
-						ContaBancaria conta2 = fh.ReadById(id2);
+						ContaBancaria? conta1 = fh.ReadById(id1);
+						ContaBancaria? conta2 = fh.ReadById(id2);
 
 						if (conta1 != null && conta2 != null) {
 							if (conta1.SaldoConta >= transf) {
-								conta1.SaldoConta -= transf;
+								conta1.Transferir(transf);
 								conta1.TransfRealizadas++;
 							}
 
-							conta2.SaldoConta += transf;
+							conta2.Depositar(transf);
 
 							fh.UpdateById(conta1, id1);
 							fh.UpdateById(conta2, id2);
@@ -87,35 +97,75 @@ namespace Trabalho2 {
 					case 4: {
 						LineWrap();
 						Console.Write("Deseja fazer a busca por Cidade(0), Nome(1) ou ID(2)?> ");
-						ushort op = ushort.Parse(Console.ReadLine());
+						ushort? op = ushort.Parse(Console.ReadLine());
+
+						if (op == null) {
+							Console.WriteLine("\nOperação não encontrada!\n");
+							Thread.Sleep(2000);
+							break;
+						}
 
 						switch (op) {
 							case 0:
 								Console.Write("Digite o nome da cidade> ");
-								string cidade = Console.ReadLine();
+								string? cidade = Console.ReadLine();
+
+								if (cidade == null) {
+									Console.WriteLine("\nOperação não encontrada!\n");
+									Thread.Sleep(2000);
+									break;
+								}
+
 								list = fh.ReadByCity(cidade);
 								for (int i = 0; i < list.Count; i++) {
-									Console.WriteLine(list.ElementAt(i));
+									if (!list.ElementAt(i).Lapide) {
+										Console.WriteLine("\n" + list.ElementAt(i));
+									} else if (list.ElementAt(i) == null) {
+										Console.WriteLine("\nConta não existe!");
+									} else {
+										Console.WriteLine("\nConta foi excluída!");
+									}
 								}
 								break;
 
 							case 1:
 								Console.Write("Digite o nome da conta> ");
-								string nome = Console.ReadLine();
+								string? nome = Console.ReadLine();
+
+								if (nome == null) {
+									Console.WriteLine("\nOperação não encontrada!\n");
+									Thread.Sleep(2000);
+									break;
+								}
+
 								list = fh.ReadByName(nome);
 								for (int i = 0; i < list.Count; i++) {
-									Console.WriteLine(list.ElementAt(i));
+									if (!list.ElementAt(i).Lapide) {
+										Console.WriteLine("\n" + list.ElementAt(i));
+									} else if (list.ElementAt(i) == null) {
+										Console.WriteLine("\nConta não existe!");
+									} else {
+										Console.WriteLine("\nConta foi excluída!");
+									}
 								}
 								break;
 
 							case 2:
 								Console.Write("Digite o ID da conta> ");
-								ushort id = ushort.Parse(Console.ReadLine());
-								long pos = fh.FindPosByIndex(id);
+								ushort? id = ushort.Parse(Console.ReadLine());
+								long pos = fh.FindPosByIndex(id.GetValueOrDefault());
 
 								ContaBancaria? conta = fh.ReadByPos(pos);
 
-								Console.WriteLine(conta);
+								if (conta != null) {
+									if (!conta.Lapide) {
+										Console.WriteLine("\n" + conta);
+									} else {
+										Console.WriteLine("\nConta foi excluída!");
+									}
+								} else {
+									Console.WriteLine("\nConta não existe!");
+								}
 								break;
 
 							default:
@@ -132,7 +182,7 @@ namespace Trabalho2 {
 						Console.Write("Qual ID da conta você deseja atualizar?> ");
 						ushort id = ushort.Parse(Console.ReadLine());
 
-						ContaBancaria conta = fh.ReadById(id);
+						ContaBancaria? conta = fh.ReadById(id);
 
 						if (conta == null) {
 							Console.WriteLine("\nO ID informado não pertence a nenhuma conta!\n");
@@ -144,21 +194,27 @@ namespace Trabalho2 {
 						string nome = Console.ReadLine();
 
 						Console.Write("CPF da conta...> ");
-						string cpf = Console.ReadLine();
+						string cPF = Console.ReadLine();
 
 						Console.Write("Cidade da conta> ");
 						string cidade = Console.ReadLine();
 
+						if (nome != null && cPF != null && cidade != null) {
+							Console.WriteLine("\nAntes da atualização:\n");
+							Console.WriteLine(conta.ToString());
 
-						Console.WriteLine("\nAntes da atualização:\n");
-						Console.WriteLine(conta.ToString());
+							conta.NomePessoa = nome; conta.CPF = cpf; conta.Cidade = cidade;
+							fh.UpdateById(conta, id);
 
-						conta.NomePessoa = nome; conta.CPF = cpf; conta.Cidade = cidade;
-						fh.UpdateById(conta, id);
+							Console.WriteLine("\nDepois da atualização:\n");
+							Console.WriteLine(conta.ToString());
+							Thread.Sleep(5000);
+						} else {
+							Console.WriteLine("\nFalta de informações para criar conta!\n");
+							Thread.Sleep(2000);
+						}
 
-						Console.WriteLine("\nDepois da atualização:\n");
-						Console.WriteLine(conta.ToString());
-						Thread.Sleep(5000);
+						
 						break;
 					}
 

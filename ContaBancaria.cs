@@ -10,9 +10,8 @@ namespace Trabalho2.Models {
 		public ushort IdConta { get; set; }
 		public string NomePessoa { get; set; }
 		public string CPF { get; set; }
-		public string Cidade { get; set; }
 		public ushort TransfRealizadas { get; set; }
-		public float SaldoConta { get; set; }
+		public float SaldoConta { get; private set; }
 		public bool Lapide { get; set; }
 
 		// Constructors
@@ -38,6 +37,18 @@ namespace Trabalho2.Models {
 			Lapide = false;
 		}
 
+		public string Cidade { 
+			get {
+				return Cidade;
+			}
+			set { 
+				if (value.Length <= 2) {
+					Cidade = value;
+				}
+			} 
+		}
+		
+
 		/// <summary>
 		/// Marca o atributo Lápide de conta como <see langword="true"/>.
 		/// </summary>
@@ -49,9 +60,13 @@ namespace Trabalho2.Models {
 		/// Atualiza o saldo da conta e o número de transferências realizadas.
 		/// </summary>
 		/// <param name="saldoNovo">Novo saldo da conta</param>
-		public void HandleTransferencia(uint saldoNovo) {
-			SaldoConta = saldoNovo;
+		public void Transferir(float valor) {
+			SaldoConta -= valor;
 			TransfRealizadas++;
+		}
+
+		public void Depositar(float valor) {
+			SaldoConta += valor;
 		}
 
 		/// <summary>
