@@ -27,9 +27,9 @@ namespace Trabalho2 {
 
 						Console.Write("Cidada da conta> ");
 						string? cidade = Console.ReadLine();
-						ContaBancaria contaNova = new ContaBancaria();
 
 						if (nomePessoa != null && cPF != null && cidade != null) {
+							ContaBancaria contaNova = new ContaBancaria(nomePessoa, cPF, cidade);
 							fh.Create(contaNova);
 
 							Console.WriteLine("\nConta criada com sucesso!\n");
@@ -50,7 +50,7 @@ namespace Trabalho2 {
 						Console.Write("ID da sua conta> ");
 						ushort id = ushort.Parse(Console.ReadLine());
 
-						ContaBancaria? conta = fh.ReadById(id);
+						ContaBancaria? conta = fh.ReadByPos(fh.FindPosByIndex(id));
 
 						if (conta != null) {
 							LineWrap();
@@ -58,6 +58,8 @@ namespace Trabalho2 {
 							conta.Depositar(float.Parse(Console.ReadLine()));
 
 							fh.UpdateById(conta, id);
+						} else {
+							Console.WriteLine("\nEsta conta não existe!\n");
 						}
 						break;
 					}
@@ -74,13 +76,12 @@ namespace Trabalho2 {
 						Console.Write("Quanto você deseja transferir> ");
 						float transf = float.Parse(Console.ReadLine());
 
-						ContaBancaria? conta1 = fh.ReadById(id1);
-						ContaBancaria? conta2 = fh.ReadById(id2);
+						ContaBancaria? conta1 = fh.ReadByPos(fh.FindPosByIndex(id1));
+						ContaBancaria? conta2 = fh.ReadByPos(fh.FindPosByIndex(id2));
 
 						if (conta1 != null && conta2 != null) {
 							if (conta1.SaldoConta >= transf) {
 								conta1.Transferir(transf);
-								conta1.TransfRealizadas++;
 							}
 
 							conta2.Depositar(transf);
@@ -117,14 +118,19 @@ namespace Trabalho2 {
 								}
 
 								list = fh.ReadByCity(cidade);
-								for (int i = 0; i < list.Count; i++) {
-									if (!list.ElementAt(i).Lapide) {
-										Console.WriteLine("\n" + list.ElementAt(i));
-									} else if (list.ElementAt(i) == null) {
-										Console.WriteLine("\nConta não existe!");
-									} else {
-										Console.WriteLine("\nConta foi excluída!");
+
+								if (list.Count > 0) {
+									for (int i = 0; i < list.Count; i++) {
+										if (!list.ElementAt(i).Lapide) {
+											Console.WriteLine("\n" + list.ElementAt(i));
+										} else if (list.ElementAt(i) == null) {
+											Console.WriteLine("\nConta não existe!");
+										} else {
+											Console.WriteLine("\nConta foi excluída!");
+										}
 									}
+								} else {
+									Console.WriteLine("\nNenhum item foi encontrado com esta cidade!\n");
 								}
 								break;
 
@@ -139,14 +145,18 @@ namespace Trabalho2 {
 								}
 
 								list = fh.ReadByName(nome);
-								for (int i = 0; i < list.Count; i++) {
-									if (!list.ElementAt(i).Lapide) {
-										Console.WriteLine("\n" + list.ElementAt(i));
-									} else if (list.ElementAt(i) == null) {
-										Console.WriteLine("\nConta não existe!");
-									} else {
-										Console.WriteLine("\nConta foi excluída!");
+								if (list.Count > 0) {
+									for (int i = 0; i < list.Count; i++) {
+										if (!list.ElementAt(i).Lapide) {
+											Console.WriteLine("\n" + list.ElementAt(i));
+										} else if (list.ElementAt(i) == null) {
+											Console.WriteLine("\nConta não existe!");
+										} else {
+											Console.WriteLine("\nConta foi excluída!");
+										}
 									}
+								} else {
+									Console.WriteLine("\nNenhum item foi encontrado com este nome!\n");
 								}
 								break;
 
@@ -164,7 +174,7 @@ namespace Trabalho2 {
 										Console.WriteLine("\nConta foi excluída!");
 									}
 								} else {
-									Console.WriteLine("\nConta não existe!");
+									Console.WriteLine("\nEsta conta não existe!");
 								}
 								break;
 
@@ -203,7 +213,7 @@ namespace Trabalho2 {
 							Console.WriteLine("\nAntes da atualização:\n");
 							Console.WriteLine(conta.ToString());
 
-							conta.NomePessoa = nome; conta.CPF = cpf; conta.Cidade = cidade;
+							conta.NomePessoa = nome; conta.CPF = cPF; conta.Cidade = cidade;
 							fh.UpdateById(conta, id);
 
 							Console.WriteLine("\nDepois da atualização:\n");

@@ -10,6 +10,7 @@ namespace Trabalho2.Models {
 		public ushort IdConta { get; set; }
 		public string NomePessoa { get; set; }
 		public string CPF { get; set; }
+		public string Cidade { get; set; }
 		public ushort TransfRealizadas { get; set; }
 		public float SaldoConta { get; private set; }
 		public bool Lapide { get; set; }
@@ -27,26 +28,16 @@ namespace Trabalho2.Models {
 			Lapide = false;
 		}
 
-		public ContaBancaria(string nomePessoa, string cpf, string cidade, ushort transfRealizadas, uint saldoConta) {
+		public ContaBancaria(string nomePessoa, string cpf, string cidade) {
 			IdConta = 0;
 			NomePessoa = nomePessoa;
 			CPF = cpf;
 			Cidade = cidade;
-			TransfRealizadas = transfRealizadas;
-			SaldoConta = saldoConta;
+			TransfRealizadas = 0;
+			SaldoConta = 0;
 			Lapide = false;
 		}
 
-		public string Cidade { 
-			get {
-				return Cidade;
-			}
-			set { 
-				if (value.Length <= 2) {
-					Cidade = value;
-				}
-			} 
-		}
 		
 
 		/// <summary>
